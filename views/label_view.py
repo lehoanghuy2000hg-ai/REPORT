@@ -404,7 +404,7 @@ def render_label_tab():
                     try:
                         pdf_bytes = HTML(string=html_content).write_pdf()
                         st.download_button(
-                            label=f"📥 TẢI FILE PDF TRỰC TIẾP (.PDF) - {'TÚI BÀI THI' if type_key == 'tui_bai' else 'TÚI ĐỀ THI'}",
+                            label=f"📥 TẢI FILE PDF - {'TÚI BÀI THI' if type_key == 'tui_bai' else 'TÚI ĐỀ THI'}",
                             data=pdf_bytes,
                             file_name=pdf_filename,
                             mime="application/pdf",
