@@ -164,7 +164,7 @@ def generate_custom_report_html(selected_sessions_list):
             <table class="header-table">
                 <tr>
                     <td style="width: 45%; text-align: center;">
-                        <b>TRƯỜNG ĐẠI HỌC KINH TẾ TP.HCM</b><br>
+                        <b>ĐẠI HỌC KINH TẾ TP.HCM</b><br>
                         <b>PHÂN HIỆU TẠI TỈNH VĨNH LONG</b>
                     </td>
                     <td style="width: 55%; text-align: center;">
