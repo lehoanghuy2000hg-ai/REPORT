@@ -274,7 +274,7 @@ def render_summary_report_tab():
             df_sessions2 = process_group_by_date_and_time(df_raw2)
 
             st.markdown("---")
-            st.subheader("2. Danh sách Ca thi tổng hợp theo Ngày & Giờ (Tích chọn để xuất Báo cáo)")
+            st.subheader("2. Danh sách Ca thi")
             
             # Xử lý cập nhật trực tiếp session_state cho nút Chọn tất cả / Hủy chọn tất cả
             col_btn1, col_btn2, _ = st.columns([1.5, 1.5, 5])
