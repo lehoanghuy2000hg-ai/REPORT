@@ -157,7 +157,7 @@ def generate_pdf_html(rows_list, report_type="tui_bai"):
             </div>
 
             <div class="field-item" style="margin-top: 8px;">
-                <span class="lbl">MÔN THI:</span> <span style="text-transform: uppercase;"><b>{mon_thi}</b></span>
+                <span class="lbl">TÊN HỌC PHẦN:</span> <span style="text-transform: uppercase;"><b>{mon_thi}</b></span>
             </div>
 
             <div class="field-item" style="margin-top: 6px;">
