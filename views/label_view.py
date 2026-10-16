@@ -11,6 +11,16 @@ except Exception:
     WEASYPRINT_AVAILABLE = False
 
 def map_excel_columns_for_labels(df_raw):
+    """
+    Trích xuất và map chính xác tiêu đề cột từ file Excel Lịch thi UIS gốc:
+    - KHÓA -> Khóa học
+    - GIỜ THI -> Giờ BĐ
+    - HÌNH THỨC THI -> HT Thi
+    - MÔN THI -> Tên HP
+    - MÃ LỚP HỌC PHẦN -> Cột C (Lớp HP)
+    - LỚP/NGÀNH -> Cột K (Lớp SV), nếu trống lấy Ngành học
+    - SỐ LƯỢNG ĐỀ THI -> #SV dự thi / #SV Thi
+    """
     if df_raw is None or df_raw.empty:
         return pd.DataFrame()
 
@@ -19,12 +29,15 @@ def map_excel_columns_for_labels(df_raw):
 
     processed_rows = []
     for _, row in df.iterrows():
+        # 1. Khóa
         khoa = str(row.get("Khóa học", row.get("Khóa", ""))).strip()
         if khoa.lower() in ["nan", "none"]: khoa = ""
 
+        # 2. Hệ / Bậc
         he_bac = str(row.get("Bậc ĐT", row.get("Hệ/Bậc", "Đại học (KSV)"))).strip()
         if he_bac.lower() in ["nan", "none"] or not he_bac: he_bac = "Đại học (KSV)"
 
+        # 3. Ngày thi
         ngay_raw = str(row.get("Ngày thi", row.get("Ngày KT", ""))).strip()
         ngay_clean = ngay_raw.split(" ")[0].replace("00:00:00", "").strip()
         match_ngay = re.match(r'^(\d{4})-(\d{2})-(\d{2})$', ngay_clean)
@@ -33,20 +46,29 @@ def map_excel_columns_for_labels(df_raw):
         else:
             ngay_thi = ngay_clean if ngay_clean.lower() not in ["nan", "none"] else ""
 
+        # 4. Giờ thi (Giờ BĐ)
         gio_raw = str(row.get("Giờ BĐ", row.get("Giờ thi", ""))).strip()
         gio_thi = gio_raw if gio_raw.lower() not in ["nan", "none"] else ""
 
+        # 5. Phòng thi
         phong_raw = str(row.get("Phòng thi", "")).strip()
         phong_thi = phong_raw if phong_raw.lower() not in ["nan", "none"] else ""
 
+        # 6. Hình thức thi
         ht_raw = str(row.get("HT Thi", row.get("Hình thức thi", ""))).strip()
         if ht_raw.lower() in ["nan", "none"]:
             ht_raw = "Tự luận tập trung"
         hinh_thuc = re.sub(r'\s*\(\d+\)$', '', ht_raw).strip()
 
+        # 7. Môn thi (Tên HP)
         mon_thi = str(row.get("Tên HP", row.get("Môn thi", row.get("Tên học phần", "")))).strip()
         if mon_thi.lower() in ["nan", "none"]: mon_thi = ""
 
+        # 8. Mã lớp học phần (Cột C: Lớp HP)
+        ma_lop_hp = str(row.get("Lớp HP", row.get("Mã lớp HP", ""))).strip()
+        if ma_lop_hp.lower() in ["nan", "none"]: ma_lop_hp = ""
+
+        # 9. Lớp/Ngành -> Dữ liệu từ cột K (Lớp SV)
         lop_sv = str(row.get("Lớp SV", "")).strip()
         if lop_sv and lop_sv.lower() not in ["nan", "none"]:
             lop_nganh = lop_sv
@@ -55,9 +77,10 @@ def map_excel_columns_for_labels(df_raw):
             if nganh and nganh.lower() not in ["nan", "none"]:
                 lop_nganh = nganh
             else:
-                lop_nganh = str(row.get("Lớp HP", row.get("Lớp/Ngành", ""))).strip()
+                lop_nganh = ma_lop_hp
         if lop_nganh.lower() in ["nan", "none"]: lop_nganh = ""
 
+        # 10. Sĩ số / Số lượng đề thi
         sl_raw = str(row.get("#SV dự thi", row.get("#SV Thi", row.get("SLSV", "")))).strip().replace(".0", "")
         if sl_raw.isdigit():
             slsv = sl_raw
@@ -73,12 +96,14 @@ def map_excel_columns_for_labels(df_raw):
             "Hình thức thi": hinh_thuc,
             "Lớp/Ngành": lop_nganh,
             "Môn thi": mon_thi,
+            "Mã lớp học phần": ma_lop_hp,
             "SLSV": slsv
         })
 
     return pd.DataFrame(processed_rows)
 
 def generate_pdf_html(rows_list, report_type="tui_bai"):
+    """Tạo HTML/CSS chuẩn khổ A4 kèm nút bấm In trực tiếp góc trên"""
     is_tui_bai = (report_type == "tui_bai")
     
     labels_html = ""
@@ -91,9 +116,11 @@ def generate_pdf_html(rows_list, report_type="tui_bai"):
         hinh_thuc = str(row.get("Hình thức thi", ""))
         lop_nganh = str(row.get("Lớp/Ngành", ""))
         mon_thi = str(row.get("Môn thi", ""))
+        ma_lop_hp = str(row.get("Mã lớp học phần", ""))
         slsv = str(row.get("SLSV", ""))
 
         if is_tui_bai:
+            # ---------------- MẪU TÚI ĐỰNG BÀI THI ----------------
             title_text = "TÚI ĐỰNG BÀI THI THI KẾT THÚC HỌC PHẦN - LẦN 1"
             box_content = f"""
             <div class="box-border" style="margin-top: 8px;">
@@ -132,9 +159,13 @@ def generate_pdf_html(rows_list, report_type="tui_bai"):
             <div class="field-item" style="margin-top: 8px;">
                 <span class="lbl">MÔN THI:</span> <span style="text-transform: uppercase;"><b>{mon_thi}</b></span>
             </div>
+
+            <div class="field-item" style="margin-top: 6px;">
+                <span class="lbl">MÃ LỚP HỌC PHẦN:</span> {ma_lop_hp}
+            </div>
             """
             footer_content = """
-            <div class="footer-note" style="margin-top: 12px;">
+            <div class="footer-note" style="margin-top: 10px;">
                 <div style="font-size: 13pt; font-weight: bold; margin-bottom: 4px;">
                     Hạn cuối nộp bảng điểm về Phòng đào tạo UEH Mekong:
                 </div>
@@ -150,6 +181,7 @@ def generate_pdf_html(rows_list, report_type="tui_bai"):
             </div>
             """
         else:
+            # ---------------- MẪU TÚI ĐỰNG ĐỀ THI ----------------
             title_text = "TÚI ĐỰNG ĐỀ THI THI KẾT THÚC HỌC PHẦN - LẦN 1"
             box_content = f"""
             <div class="box-border" style="margin-top: 10px;">
@@ -174,6 +206,10 @@ def generate_pdf_html(rows_list, report_type="tui_bai"):
 
             <div class="field-item" style="margin-top: 6px;">
                 <span class="lbl">MÔN THI:</span> <span style="text-transform: uppercase;"><b>{mon_thi}</b></span>
+            </div>
+
+            <div class="field-item" style="margin-top: 6px;">
+                <span class="lbl">MÃ LỚP HỌC PHẦN:</span> {ma_lop_hp}
             </div>
 
             <div class="field-item" style="margin-top: 6px;">
