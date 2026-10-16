@@ -334,7 +334,7 @@ def generate_pdf_html(rows_list, report_type="tui_bai"):
     </head>
     <body>
         <div class="no-print" style="text-align: center;">
-            <button class="btn-print" onclick="window.print()">🖨️ IN NHÃN / LƯU THẲNG RA FILE PDF (A4)</button>
+            <button class="btn-print" onclick="window.print()">🖨️ IN NHÃN</button>
         </div>
         {labels_html}
     </body>
