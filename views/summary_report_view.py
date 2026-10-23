@@ -85,7 +85,6 @@ def clean_cbct_format_html(val):
     parsed_items = []
     
     for p in parts:
-        # Bỏ đuôi - 0 trong hoặc ngoài ngoặc đơn
         p_clean = re.sub(r'\s*-\s*0(?=\s*\)|$)', '', p).strip()
         p_lower = p_clean.lower()
         
@@ -114,10 +113,10 @@ def clean_cbct_format_html(val):
         if match_bracket:
             name_part = match_bracket.group(1).strip()
             role_part = match_bracket.group(2).strip()
-            formatted_text = f"{name_part} - {role_part}"
+            formatted_text = f"{name_part} - <b>{role_part}</b>"
         elif " - " in p_clean:
             name_part, role_part = p_clean.split(" - ", 1)
-            formatted_text = f"{name_part.strip()} - {role_part.strip()}"
+            formatted_text = f"{name_part.strip()} - <b>{role_part.strip()}</b>"
         else:
             formatted_text = p_clean
 
