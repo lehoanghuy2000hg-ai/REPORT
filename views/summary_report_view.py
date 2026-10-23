@@ -85,7 +85,10 @@ def clean_cbct_format_html(val):
     parsed_items = []
     
     for p in parts:
-        p_lower = p.lower()
+        # Bỏ đuôi - 0
+        p_clean = re.sub(r'\s*-\s*0\s*$', '', p).strip()
+        p_lower = p_clean.lower()
+        
         priority = 99
 
         if "cbct1" in p_lower:
@@ -107,15 +110,16 @@ def clean_cbct_format_html(val):
         elif "hỗ trợ kỹ thuật" in p_lower or "ho tro ky thuat" in p_lower:
             priority = 9
 
-        if " - " in p:
-            name_part, role_part = p.split(" - ", 1)
+        match_bracket = re.match(r'^(.*?)\s*\((.*?)\)\s*$', p_clean)
+        if match_bracket:
+            name_part = match_bracket.group(1).strip()
+            role_part = match_bracket.group(2).strip()
+            formatted_text = f"{name_part} - <b>{role_part}</b>"
+        elif " - " in p_clean:
+            name_part, role_part = p_clean.split(" - ", 1)
             formatted_text = f"{name_part.strip()} - <b>{role_part.strip()}</b>"
         else:
-            match = re.match(r'^(.*?)\s*\((.*?)\)\s*$', p)
-            if match:
-                formatted_text = f"{match.group(1).strip()} - <b>{match.group(2).strip()}</b>"
-            else:
-                formatted_text = p
+            formatted_text = p_clean
 
         parsed_items.append((priority, formatted_text))
 
