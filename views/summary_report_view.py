@@ -78,37 +78,49 @@ def process_group_by_date_and_time(df):
     return pd.DataFrame(grouped_sessions)
 
 def clean_cbct_format_html(val):
-    if not val or pd.isna(val): return "Chưa phân công"
+    if not val or pd.isna(val): 
+        return "Chưa phân công"
+    
     parts = [p.strip() for p in str(val).replace('\n', ';').replace(',', ';').split(';') if p.strip()]
     parsed_items = []
     
     for p in parts:
-        match = re.match(r'^(.*?)\s*\((.*?)(?:\s*-\s*\d+)?\)\s*$', p)
-        if match:
-            name = match.group(1).strip()
-            role = match.group(2).strip()
-            role = re.sub(r'\s*-\s*\d+$', '', role).strip()
-            priority = 0
-            if "cbct1" in role.lower():
-                priority = 1
-            elif "cbct2" in role.lower():
-                priority = 2
-            else:
-                priority = 3
-            parsed_items.append((priority, name, role))
+        p_lower = p.lower()
+        priority = 99
+
+        if "cbct1" in p_lower:
+            priority = 1
+        elif "cbct2" in p_lower:
+            priority = 2
+        elif "phòng máy" in p_lower or "phong may" in p_lower:
+            priority = 3
+        elif "lãnh đạo" in p_lower or "lanh dao" in p_lower:
+            priority = 4
+        elif "thường trực" in p_lower or "thuong truc" in p_lower:
+            priority = 5
+        elif "tiếp nhận" in p_lower or "tiep nhan" in p_lower:
+            priority = 6
+        elif "thư ký" in p_lower or "thu ky" in p_lower:
+            priority = 7
+        elif "giám sát" in p_lower or "giam sat" in p_lower:
+            priority = 8
+        elif "hỗ trợ kỹ thuật" in p_lower or "ho tro ky thuat" in p_lower:
+            priority = 9
+
+        if " - " in p:
+            name_part, role_part = p.split(" - ", 1)
+            formatted_text = f"{name_part.strip()} - <b>{role_part.strip()}</b>"
         else:
-            parsed_items.append((4, p, ""))
+            match = re.match(r'^(.*?)\s*\((.*?)\)\s*$', p)
+            if match:
+                formatted_text = f"{match.group(1).strip()} - <b>{match.group(2).strip()}</b>"
+            else:
+                formatted_text = p
+
+        parsed_items.append((priority, formatted_text))
 
     parsed_items.sort(key=lambda x: x[0])
-
-    out = []
-    for item in parsed_items:
-        _, name, role = item
-        if role:
-            out.append(f"{name} - <b>{role}</b>")
-        else:
-            out.append(name)
-    return "<br>".join(out)
+    return "<br>".join([item[1] for item in parsed_items])
 
 def generate_custom_report_html(selected_sessions_list):
     reports_body_html = ""
@@ -164,7 +176,7 @@ def generate_custom_report_html(selected_sessions_list):
             <table class="header-table">
                 <tr>
                     <td style="width: 45%; text-align: center;">
-                        <b>ĐẠI HỌC KINH TẾ TP.HCM</b><br>
+                        <b>TRƯỜNG ĐẠI HỌC KINH TẾ TP.HCM</b><br>
                         <b>PHÂN HIỆU TẠI TỈNH VĨNH LONG</b>
                     </td>
                     <td style="width: 55%; text-align: center;">
@@ -254,7 +266,7 @@ def generate_custom_report_html(selected_sessions_list):
     </head>
     <body>
         <div class="no-print" style="text-align: center;">
-            <button class="btn-print" onclick="window.print()">🖨️ IN TẤT CẢ</button>
+            <button class="btn-print" onclick="window.print()">🖨️ IN TẤT CẢ BÁO CÁO (A4 NGANG)</button>
         </div>
         {reports_body_html}
     </body>
@@ -263,7 +275,7 @@ def generate_custom_report_html(selected_sessions_list):
     return full_html
 
 def render_summary_report_tab():
-    st.subheader("1. Tải tệp DS Phân Công CBCT")
+    st.subheader("1. Tải tệp dữ liệu xuất Báo cáo Tổng hợp")
     file_tab2 = st.file_uploader("📂 Tải tệp Lịch thi / Phân công coi thi (.xlsx, .xls)", type=["xlsx", "xls"], key="uploader_summary_tab")
 
     if file_tab2 is not None:
@@ -274,9 +286,8 @@ def render_summary_report_tab():
             df_sessions2 = process_group_by_date_and_time(df_raw2)
 
             st.markdown("---")
-            st.subheader("2. Danh sách Ca thi")
+            st.subheader("2. Danh sách Ca thi tổng hợp theo Ngày & Giờ (Tích chọn để xuất Báo cáo)")
             
-            # Xử lý cập nhật trực tiếp session_state cho nút Chọn tất cả / Hủy chọn tất cả
             col_btn1, col_btn2, _ = st.columns([1.5, 1.5, 5])
             with col_btn1:
                 if st.button("✅ Chọn tất cả", key="btn_select_all_summary", use_container_width=True):
@@ -291,7 +302,6 @@ def render_summary_report_tab():
 
             selected_rows2 = []
             for idx, row in df_sessions2.iterrows():
-                # Khởi tạo giá trị mặc định nếu key chưa tồn tại
                 if f"chk_summary_{idx}" not in st.session_state:
                     st.session_state[f"chk_summary_{idx}"] = False
 
@@ -313,7 +323,7 @@ def render_summary_report_tab():
                         selected_rows2.append(row.to_dict())
 
             st.markdown("---")
-            st.subheader("3. Xem trước 🖨️ & In DS CBCT")
+            st.subheader("3. Xem trước 🖨️ & Tải Báo cáo Tổng hợp Hàng loạt A4 Ngang")
 
             if not selected_rows2:
                 st.info("💡 Vui lòng tích chọn ít nhất 1 ca thi ở bảng trên để xem trước và xuất báo cáo.")
